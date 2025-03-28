@@ -14,13 +14,25 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // API Key Management
     let apiKey = '';
-    
-    // Check for saved API key
+
+    // Set your new API key here (will be stored in localStorage)
+    const newApiKey = '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'; // Replace with your actual API key
+
+    // Check for saved API key or use the new one
     if (localStorage.getItem('openrouter_api_key')) {
         apiKey = localStorage.getItem('openrouter_api_key');
         apiKeyInput.value = apiKey;
         apiSection.style.display = 'none';
         addMessage('Welcome back to Voice Bot! I\'m ready to assist you.', 'bot');
+    } else if (newApiKey !== 'YOUR_NEW_API_KEY_HERE') {
+        // Store the new API key if it was updated
+        apiKey = newApiKey;
+        localStorage.setItem('openrouter_api_key', apiKey);
+        apiKeyInput.value = apiKey;
+        apiSection.style.display = 'none';
+        addMessage('Welcome to Voice Bot! I\'m ready to assist you.', 'bot');
+        startBtn.disabled = false;
+        sendBtn.disabled = false;
     } else {
         startBtn.disabled = true;
         sendBtn.disabled = true;
