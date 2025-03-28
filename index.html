@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Voice Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Personal Voice Assistant</h1>
+        
+        <div class="chat-container">
+            <div id="chat-messages" class="chat-messages"></div>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn" class="control-btn">Start Listening</button>
+            <button id="stop-btn" class="control-btn" disabled>Stop Listening</button>
+            <button id="stop-speaking-btn" class="control-btn">Stop Speaking</button>
+            <div id="status" class="status">Click "Start Listening" to begin</div>
+        </div>
+
+        <div class="text-input">
+            <input type="text" id="text-question" placeholder="Or type your question here...">
+            <button id="send-btn" class="control-btn">Send</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
