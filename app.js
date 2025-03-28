@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Get the current model to try
             const currentModel = models[modelIndex];
-            updateStatus(`Connecting to OpenRouter using ${currentModel}...`);
+            updateStatus(`Thinking...`); // Generic status message
 
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
