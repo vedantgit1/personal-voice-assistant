@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
         apiSection.style.display = 'block';
     }
     
-    // Function to test API key
+    // Function to test API key and fetch available models
     async function testApiKey(key) {
         updateStatus('Testing API key...');
         try {
@@ -74,6 +74,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const data = await response.json();
             console.log('API key test successful:', data);
+
+            // Store some recommended models for fallback
+            window.availableModels = [
+                'deepseek/deepseek-r1:free', // Free model as primary choice
+                'openai/gpt-3.5-turbo',
+                'openai/gpt-4',
+                'anthropic/claude-3-haiku',
+                'google/gemini-pro'
+            ];
+
+            // Update with actual available models if possible
+            if (data && data.data && Array.isArray(data.data)) {
+                window.availableModels = data.data
+                    .filter(model => model.id && typeof model.id === 'string')
+                    .map(model => model.id)
+                    .slice(0, 10); // Get top 10 models
+                console.log('Available models:', window.availableModels);
+            }
+
             return true;
         } catch (error) {
             console.error('API key test error:', error);
@@ -238,12 +257,28 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
-    async function getAIResponse(question) {
+    async function getAIResponse(question, modelIndex = 0) {
         try {
             // Log the API key being used (first 10 chars only for security)
             console.log('Using API key starting with:', apiKey.substring(0, 10) + '...');
 
-            updateStatus('Connecting to OpenRouter...');
+            // Get available models or use defaults
+            const models = window.availableModels || [
+                'deepseek/deepseek-r1:free', // Free model as primary choice
+                'openai/gpt-3.5-turbo',
+                'openai/gpt-4',
+                'anthropic/claude-3-haiku',
+                'google/gemini-pro'
+            ];
+
+            // If we've tried all models, give up
+            if (modelIndex >= models.length) {
+                throw new Error('All available models failed. Please try again later or check your API key.');
+            }
+
+            // Get the current model to try
+            const currentModel = models[modelIndex];
+            updateStatus(`Connecting to OpenRouter using ${currentModel}...`);
 
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
@@ -254,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-Title': 'Voice Bot'
                 },
                 body: JSON.stringify({
-                    model: 'anthropic/claude-instant-1', // Using a different model that might be more reliable
+                    model: currentModel,
                     messages: [
                         {
                             role: 'system',
@@ -271,7 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // Log the response status
-            console.log('OpenRouter API response status:', response.status);
+            console.log(`OpenRouter API response status for ${currentModel}:`, response.status);
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -283,6 +318,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('Invalid API key. Please check your API key and try again.');
                 } else if (response.status === 429) {
                     throw new Error('Rate limit exceeded. Please try again later.');
+                } else if (response.status === 404) {
+                    console.log(`Model ${currentModel} not available, trying next model...`);
+                    // Try the next model
+                    return getAIResponse(question, modelIndex + 1);
                 } else {
                     throw new Error(`API request failed with status ${response.status}: ${errorText}`);
                 }
@@ -293,7 +332,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (data.choices && data.choices[0] && data.choices[0].message) {
                 const aiResponse = data.choices[0].message.content.trim();
-                addMessage(aiResponse, 'bot');
+                // Add model info to the message
+                addMessage(`[Using ${currentModel}]\n${aiResponse}`, 'bot');
                 speakResponse(aiResponse);
                 updateStatus('Ready');
             } else {

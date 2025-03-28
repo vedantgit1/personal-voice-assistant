@@ -74,6 +74,8 @@ This application uses:
 
 - **Web Speech API**: For speech recognition and synthesis
 - **OpenRouter API**: To access advanced language models
+  - **DeepSeek R1 (Free)**: Primary model used for responses
+  - Automatic fallback to other models if needed
 - **HTML/CSS/JavaScript**: For the web interface
 - **LocalStorage**: To save your API key between sessions
 
