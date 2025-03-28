@@ -3,10 +3,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const startBtn = document.getElementById('start-btn');
     const stopBtn = document.getElementById('stop-btn');
     const stopSpeakingBtn = document.getElementById('stop-speaking-btn');
+    const testApiBtn = document.getElementById('test-api-btn');
     const statusDiv = document.getElementById('status');
     const chatMessages = document.getElementById('chat-messages');
     const textQuestion = document.getElementById('text-question');
     const sendBtn = document.getElementById('send-btn');
+    const apiKeyInput = document.getElementById('api-key-input');
+    const saveApiKeyBtn = document.getElementById('save-api-key');
+    const showApiFormBtn = document.getElementById('show-api-form');
+    const apiKeyContainer = document.getElementById('api-key-container');
 
     // Speech recognition setup
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -25,13 +30,42 @@ document.addEventListener('DOMContentLoaded', () => {
     // Speech synthesis setup
     const synth = window.speechSynthesis;
 
-    let apiKey = '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';
+    let apiKey = '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';
 
+    // Check if API key exists in localStorage
     if (localStorage.getItem('openrouter_api_key')) {
         apiKey = localStorage.getItem('openrouter_api_key');
+        apiKeyInput.value = apiKey;
+        apiKeyContainer.style.display = 'none'; // Hide API key input if we already have a key
     } else {
-        localStorage.setItem('openrouter_api_key', apiKey);
+        // Show API key input form and disable assistant functionality
+        startBtn.disabled = true;
+        sendBtn.disabled = true;
+        statusDiv.textContent = 'Please enter your OpenRouter API key to begin';
     }
+
+    // Save API key when button is clicked
+    saveApiKeyBtn.addEventListener('click', () => {
+        const newApiKey = apiKeyInput.value.trim();
+        if (newApiKey) {
+            apiKey = newApiKey;
+            localStorage.setItem('openrouter_api_key', apiKey);
+            apiKeyContainer.style.display = 'none';
+            startBtn.disabled = false;
+            sendBtn.disabled = false;
+            statusDiv.textContent = 'API key saved. Click "Start Listening" to begin';
+            addMessage('API key saved. I\'m ready to assist you now!', 'bot');
+        } else {
+            statusDiv.textContent = 'Please enter a valid API key';
+        }
+    });
+
+    // Show API key form when update button is clicked
+    showApiFormBtn.addEventListener('click', () => {
+        apiKeyContainer.style.display = 'block';
+        apiKeyInput.value = apiKey;
+        apiKeyInput.focus();
+    });
 
     // Personal profile information
     const personalContext = `
@@ -55,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startBtn.addEventListener('click', startListening);
     stopBtn.addEventListener('click', stopListening);
     stopSpeakingBtn.addEventListener('click', stopSpeaking);
+    testApiBtn.addEventListener('click', testApiConnection);
     sendBtn.addEventListener('click', () => {
         const question = textQuestion.value.trim();
         if (question) {
@@ -144,15 +179,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         statusDiv.textContent = 'Thinking...';
-        
+        console.log('Sending request to OpenRouter API...');
+        console.log('API Key (first few chars):', apiKey.substring(0, 5) + '...');
+
         try {
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${apiKey}`,
-                    'HTTP-Referer': window.location.href,
-                    'X-Title': 'Personal Voice Assistant'
+                    'HTTP-Referer': 'https://vedantgit1.github.io/chatbotmodel/',
+                    'X-Title': 'Personal Voice Assistant',
+                    'Origin': 'https://vedantgit1.github.io',
+                    'OpenRouter-Lite': 'true'
                 },
                 body: JSON.stringify({
                     model: 'deepseek/deepseek-r1:free',
@@ -165,11 +204,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
             });
 
+            console.log('Response status:', response.status);
+
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Error Response:', errorText);
                 throw new Error(`API request failed with status ${response.status}`);
             }
 
             const data = await response.json();
+            console.log('API Response received successfully');
             const aiResponse = data.choices[0].message.content.trim();
             
             addMessage(aiResponse, 'bot');
@@ -202,6 +246,62 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 statusDiv.textContent = 'Click "Start Listening" to begin';
             }, 1500);
+        }
+    }
+
+    // Test API connection function
+    async function testApiConnection() {
+        if (!apiKey) {
+            addMessage('API key is missing. Please enter your OpenRouter API key first.', 'bot');
+            return;
+        }
+
+        statusDiv.textContent = 'Testing API connection...';
+        addMessage('Testing connection to OpenRouter API...', 'bot');
+
+        try {
+            console.log('Testing API connection...');
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                    'HTTP-Referer': window.location.href,
+                    'X-Title': 'Personal Voice Assistant',
+                    'Origin': window.location.origin,
+                    'OpenRouter-Lite': 'true'
+                },
+                body: JSON.stringify({
+                    model: 'deepseek/deepseek-r1:free',
+                    messages: [
+                        { role: 'system', content: 'You are a helpful assistant.' },
+                        { role: 'user', content: 'Say "API connection successful!" and nothing else.' }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 50
+                })
+            });
+
+            console.log('Test response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Test Error:', errorText);
+                throw new Error(`API test failed with status ${response.status}`);
+            }
+
+            const data = await response.json();
+            const testResponse = data.choices[0].message.content.trim();
+
+            addMessage(`✅ ${testResponse}`, 'bot');
+            statusDiv.textContent = 'API connection successful!';
+            console.log('API test successful');
+
+        } catch (error) {
+            console.error('API Test Error:', error);
+            addMessage(`❌ API connection failed: ${error.message}`, 'bot');
+            addMessage('Please check your API key and browser console for more details.', 'bot');
+            statusDiv.textContent = 'API connection failed';
         }
     }
 
