@@ -139,34 +139,104 @@ document.addEventListener('DOMContentLoaded', function() {
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.continuous = true;
-        recognition.interimResults = false;
+        recognition.interimResults = true; // Get interim results to detect pauses
         recognition.lang = 'en-US';
-        
+
+        // Variables to track speech detection
+        let finalTranscript = '';
+        let recognitionIsActive = false;
+        let silenceTimer = null;
+        const silenceThreshold = 2000; // 2 seconds of silence to trigger processing
+
         recognition.onstart = function() {
             updateStatus('Listening...');
             startBtn.disabled = true;
             stopBtn.disabled = false;
+            recognitionIsActive = true;
+            finalTranscript = '';
         };
-        
+
         recognition.onend = function() {
+            recognitionIsActive = false;
+            // Process any remaining transcript if it exists
+            if (finalTranscript.trim()) {
+                processUserInput(finalTranscript.trim());
+                finalTranscript = '';
+            }
             updateStatus('Ready');
             startBtn.disabled = false;
             stopBtn.disabled = true;
         };
-        
+
         recognition.onresult = function(event) {
-            const last = event.results.length - 1;
-            const text = event.results[last][0].transcript.trim();
-            
-            if (text) {
-                processUserInput(text);
+            // Clear the silence timer on new speech
+            if (silenceTimer) {
+                clearTimeout(silenceTimer);
+                silenceTimer = null;
+            }
+
+            // Get the transcript
+            let interimTranscript = '';
+            finalTranscript = '';
+
+            for (let i = 0; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript;
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+
+            // If we have a final transcript, process it
+            if (finalTranscript.trim()) {
+                updateStatus('Processing speech...');
+                processUserInput(finalTranscript.trim());
+                finalTranscript = '';
+
+                // Restart recognition to continue listening
+                try {
+                    recognition.stop();
+                    setTimeout(() => {
+                        if (recognitionIsActive) {
+                            recognition.start();
+                        }
+                    }, 500);
+                } catch (error) {
+                    console.error('Error restarting recognition:', error);
+                }
+            }
+            // If we have interim results, set a timer to detect silence
+            else if (interimTranscript.trim()) {
+                updateStatus('Listening: ' + interimTranscript);
+
+                // Set a timer to detect silence
+                silenceTimer = setTimeout(() => {
+                    if (interimTranscript.trim()) {
+                        updateStatus('Processing speech after pause...');
+                        processUserInput(interimTranscript.trim());
+
+                        // Restart recognition to continue listening
+                        try {
+                            recognition.stop();
+                            setTimeout(() => {
+                                if (recognitionIsActive) {
+                                    recognition.start();
+                                }
+                            }, 500);
+                        } catch (error) {
+                            console.error('Error restarting recognition:', error);
+                        }
+                    }
+                }, silenceThreshold);
             }
         };
-        
+
         recognition.onerror = function(event) {
             updateStatus('Error: ' + event.error);
             startBtn.disabled = false;
             stopBtn.disabled = true;
+            recognitionIsActive = false;
         };
     } else {
         startBtn.disabled = true;
@@ -183,16 +253,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
+            // Set a flag to indicate recognition should be active
+            recognition.recognitionIsActive = true;
             recognition.start();
+            updateStatus('Listening... (will automatically detect when you finish speaking)');
         } catch (error) {
-            console.error('Recognition error:', error);
-            updateStatus('Error starting recognition');
+            // Handle the case where recognition is already started
+            if (error.name === 'InvalidStateError') {
+                try {
+                    // Stop and restart recognition
+                    recognition.stop();
+                    setTimeout(() => {
+                        recognition.recognitionIsActive = true;
+                        recognition.start();
+                        updateStatus('Listening... (will automatically detect when you finish speaking)');
+                    }, 500);
+                } catch (restartError) {
+                    console.error('Error restarting recognition:', restartError);
+                    updateStatus('Error restarting speech recognition');
+                }
+            } else {
+                console.error('Recognition error:', error);
+                updateStatus('Error starting recognition');
+            }
         }
     });
 
     stopBtn.addEventListener('click', function() {
         try {
+            // Set flag to indicate recognition should stop
+            recognition.recognitionIsActive = false;
             recognition.stop();
+            updateStatus('Voice recognition stopped');
         } catch (error) {
             console.error('Error stopping recognition:', error);
         }
