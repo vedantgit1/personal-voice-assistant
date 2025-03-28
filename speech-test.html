@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Speech API Test</h1>
+    <p>This page tests if your browser supports the Web Speech API.</p>
+    
+    <button id="test-recognition">Test Speech Recognition</button>
+    <button id="test-synthesis">Test Speech Synthesis</button>
+    
+    <div id="result">Results will appear here...</div>
+    
+    <script>
+        document.getElementById('test-recognition').addEventListener('click', testRecognition);
+        document.getElementById('test-synthesis').addEventListener('click', testSynthesis);
+        
+        function testRecognition() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing Speech Recognition...';
+            
+            // Check if SpeechRecognition is supported
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                resultDiv.innerHTML = '❌ Speech Recognition is NOT supported in this browser.';
+                return;
+            }
+            
+            resultDiv.innerHTML = '✅ Speech Recognition is supported in this browser.<br><br>Attempting to start recognition...';
+            
+            try {
+                const recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+                
+                recognition.onstart = () => {
+                    resultDiv.innerHTML += '<br>🎤 Recognition started. Please speak now...';
+                };
+                
+                recognition.onresult = (event) => {
+                    const text = event.results[0][0].transcript;
+                    resultDiv.innerHTML += `<br>🔊 You said: "${text}"`;
+                };
+                
+                recognition.onerror = (event) => {
+                    resultDiv.innerHTML += `<br>❌ Error: ${event.error}`;
+                };
+                
+                recognition.onend = () => {
+                    resultDiv.innerHTML += '<br>✅ Recognition ended.';
+                };
+                
+                recognition.start();
+            } catch (error) {
+                resultDiv.innerHTML += `<br>❌ Error starting recognition: ${error.message}`;
+            }
+        }
+        
+        function testSynthesis() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing Speech Synthesis...';
+            
+            // Check if SpeechSynthesis is supported
+            if (!window.speechSynthesis) {
+                resultDiv.innerHTML = '❌ Speech Synthesis is NOT supported in this browser.';
+                return;
+            }
+            
+            resultDiv.innerHTML = '✅ Speech Synthesis is supported in this browser.<br><br>Attempting to speak...';
+            
+            try {
+                const utterance = new SpeechSynthesisUtterance('Hello, this is a test of the speech synthesis API.');
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.lang = 'en-US';
+                
+                utterance.onstart = () => {
+                    resultDiv.innerHTML += '<br>🔊 Speaking started...';
+                };
+                
+                utterance.onend = () => {
+                    resultDiv.innerHTML += '<br>✅ Speaking ended.';
+                };
+                
+                utterance.onerror = (event) => {
+                    resultDiv.innerHTML += `<br>❌ Error: ${event.error}`;
+                };
+                
+                window.speechSynthesis.speak(utterance);
+            } catch (error) {
+                resultDiv.innerHTML += `<br>❌ Error starting synthesis: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
