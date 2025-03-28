@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let apiKey = '';
 
     // Set your new API key here (will be stored in localStorage)
-    const newApiKey = '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'; // Replace with your actual API key
+    const newApiKey = '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'; // Replace with your actual API key when testing locally
 
     // Add a function to clear localStorage
     function clearStoredApiKey() {
@@ -40,25 +40,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add the clear button next to the save button
     saveKeyBtn.parentNode.insertBefore(clearKeyBtn, saveKeyBtn.nextSibling);
 
-    // Check for saved API key or use the new one
+    // Check for saved API key
     if (localStorage.getItem('openrouter_api_key')) {
         apiKey = localStorage.getItem('openrouter_api_key');
         apiKeyInput.value = apiKey;
         apiSection.style.display = 'none';
         addMessage('Welcome back to Voice Bot! I\'m ready to assist you.', 'bot');
-    } else if (newApiKey !== 'YOUR_NEW_API_KEY_HERE') {
-        // Store the new API key if it was updated
-        apiKey = newApiKey;
-        localStorage.setItem('openrouter_api_key', apiKey);
-        apiKeyInput.value = apiKey;
-        apiSection.style.display = 'none';
-        addMessage('Welcome to Voice Bot! I\'m ready to assist you.', 'bot');
         startBtn.disabled = false;
         sendBtn.disabled = false;
     } else {
+        // No saved API key, show the input section
         startBtn.disabled = true;
         sendBtn.disabled = true;
         addMessage('Please enter your OpenRouter API key to begin.', 'bot');
+        apiSection.style.display = 'block';
     }
     
     // Function to test API key

@@ -26,7 +26,7 @@ You can try the live demo here: [Personal Voice Assistant Demo](https://your-dem
 
 1. Clone this repository:
    ```
-   git clone https://github.com/your-username/personal-voice-assistant.git
+   git clone https://github.com/vedantgit1/personal-voice-assistant.git
    ```
 
 2. Navigate to the project directory:
@@ -42,13 +42,19 @@ You can try the live demo here: [Personal Voice Assistant Demo](https://your-dem
      ```
      Then visit `http://localhost:8000` in your browser
 
-4. The application comes pre-configured with an API key, but you can replace it with your own from [OpenRouter](https://openrouter.ai/) if needed
+4. **Important: You need to provide your own API key**
+   - Get an API key from [OpenRouter](https://openrouter.ai/)
+   - Enter your API key in the application's interface
+   - Your API key will be stored in your browser's localStorage
 
 5. Start interacting with the voice assistant
 
 ## How to Use
 
-1. The application comes pre-configured with an API key (you can change it by editing the script.js file if needed)
+1. **Enter your OpenRouter API key** when prompted
+   - You can get an API key from [OpenRouter](https://openrouter.ai/)
+   - Your API key will be stored in your browser's localStorage
+   - **IMPORTANT: Never commit your API key to GitHub or share it publicly**
 2. Click the "Start Listening" button to begin voice recognition
 3. Ask a question using your voice
 4. The assistant will respond both in text and with voice
