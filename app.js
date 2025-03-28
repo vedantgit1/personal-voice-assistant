@@ -332,9 +332,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (data.choices && data.choices[0] && data.choices[0].message) {
                 const aiResponse = data.choices[0].message.content.trim();
-                // Add model info to the message
-                addMessage(`[Using ${currentModel}]\n${aiResponse}`, 'bot');
+                // Display the response without showing the model info
+                addMessage(aiResponse, 'bot');
                 speakResponse(aiResponse);
+                // Log the model used to console for debugging purposes
+                console.log(`Response generated using model: ${currentModel}`);
                 updateStatus('Ready');
             } else {
                 throw new Error('Unexpected API response format');
