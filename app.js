@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // API Key Management
     let apiKey = '';
 
-    // Set your new API key here (will be stored in localStorage)
-    const newApiKey = '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'; // Replace with your actual API key when testing locally
+    // API key should be entered by the user, not hardcoded
+    const newApiKey = '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'; // Replace with your actual API key when testing locally
 
     // Add a function to clear localStorage
     function clearStoredApiKey() {
