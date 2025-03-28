@@ -16,7 +16,29 @@ document.addEventListener('DOMContentLoaded', function() {
     let apiKey = '';
 
     // Set your new API key here (will be stored in localStorage)
-    const newApiKey = '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'; // Replace with your actual API key
+    const newApiKey = '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'; // Replace with your actual API key
+
+    // Add a function to clear localStorage
+    function clearStoredApiKey() {
+        localStorage.removeItem('openrouter_api_key');
+        apiKeyInput.value = '';
+        apiSection.style.display = 'block';
+        apiKey = '';
+        startBtn.disabled = true;
+        sendBtn.disabled = true;
+        addMessage('API key has been cleared. Please enter a new API key.', 'bot');
+    }
+
+    // Create clear API key button
+    const clearKeyBtn = document.createElement('button');
+    clearKeyBtn.id = 'clear-key';
+    clearKeyBtn.textContent = 'Clear API Key';
+    clearKeyBtn.className = 'btn btn-warning';
+    clearKeyBtn.style.marginLeft = '10px';
+    clearKeyBtn.addEventListener('click', clearStoredApiKey);
+
+    // Add the clear button next to the save button
+    saveKeyBtn.parentNode.insertBefore(clearKeyBtn, saveKeyBtn.nextSibling);
 
     // Check for saved API key or use the new one
     if (localStorage.getItem('openrouter_api_key')) {
@@ -39,23 +61,58 @@ document.addEventListener('DOMContentLoaded', function() {
         addMessage('Please enter your OpenRouter API key to begin.', 'bot');
     }
     
+    // Function to test API key
+    async function testApiKey(key) {
+        updateStatus('Testing API key...');
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/models', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${key}`,
+                }
+            });
+
+            if (!response.ok) {
+                console.error('API key test failed:', await response.text());
+                return false;
+            }
+
+            const data = await response.json();
+            console.log('API key test successful:', data);
+            return true;
+        } catch (error) {
+            console.error('API key test error:', error);
+            return false;
+        }
+    }
+
     // Save API Key
-    saveKeyBtn.addEventListener('click', function() {
+    saveKeyBtn.addEventListener('click', async function() {
         const key = apiKeyInput.value.trim();
         if (key) {
-            apiKey = key;
-            localStorage.setItem('openrouter_api_key', apiKey);
-            apiSection.style.display = 'none';
-            startBtn.disabled = false;
-            sendBtn.disabled = false;
-            addMessage('API key saved. Voice Bot is ready to assist you!', 'bot');
+            updateStatus('Validating API key...');
 
-            // Send a welcome message to test the connection
-            setTimeout(() => {
-                processUserInput('Hello');
-            }, 1000);
+            // Test the API key first
+            const isValid = await testApiKey(key);
 
-            updateStatus('Ready');
+            if (isValid) {
+                apiKey = key;
+                localStorage.setItem('openrouter_api_key', apiKey);
+                apiSection.style.display = 'none';
+                startBtn.disabled = false;
+                sendBtn.disabled = false;
+                addMessage('API key validated and saved. Voice Bot is ready to assist you!', 'bot');
+
+                // Send a welcome message to test the connection
+                setTimeout(() => {
+                    processUserInput('Hello');
+                }, 1000);
+
+                updateStatus('Ready');
+            } else {
+                updateStatus('Invalid API key. Please check and try again.');
+                addMessage('The API key could not be validated. Please check that you have entered it correctly.', 'bot');
+            }
         } else {
             updateStatus('Please enter a valid API key');
         }
@@ -188,6 +245,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function getAIResponse(question) {
         try {
+            // Log the API key being used (first 10 chars only for security)
+            console.log('Using API key starting with:', apiKey.substring(0, 10) + '...');
+
+            updateStatus('Connecting to OpenRouter...');
+
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -197,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-Title': 'Voice Bot'
                 },
                 body: JSON.stringify({
-                    model: 'openai/gpt-3.5-turbo',
+                    model: 'anthropic/claude-instant-1', // Using a different model that might be more reliable
                     messages: [
                         {
                             role: 'system',
@@ -212,17 +274,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     max_tokens: 300
                 })
             });
-            
+
+            // Log the response status
+            console.log('OpenRouter API response status:', response.status);
+
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Error Response:', errorText);
+
                 if (response.status === 401) {
+                    // Show the API key input section if authentication fails
+                    apiSection.style.display = 'block';
                     throw new Error('Invalid API key. Please check your API key and try again.');
+                } else if (response.status === 429) {
+                    throw new Error('Rate limit exceeded. Please try again later.');
                 } else {
-                    throw new Error(`API request failed with status ${response.status}`);
+                    throw new Error(`API request failed with status ${response.status}: ${errorText}`);
                 }
             }
-            
+
             const data = await response.json();
-            
+            console.log('API Response Data:', data);
+
             if (data.choices && data.choices[0] && data.choices[0].message) {
                 const aiResponse = data.choices[0].message.content.trim();
                 addMessage(aiResponse, 'bot');
@@ -235,6 +308,11 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             addMessage('Error: ' + error.message, 'bot');
             updateStatus('Error occurred');
+
+            // If it's an API key error, show a helpful message
+            if (error.message.includes('API key')) {
+                addMessage('Try clicking the "Clear API Key" button and entering a new API key.', 'bot');
+            }
         }
     }
     
